@@ -3,6 +3,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const connectDB = require('./config/database');
 const User = require('./models/User');
+const mongoose = require('mongoose');
 
 const app = express();
 
@@ -67,7 +68,28 @@ app.get('/api/private', authenticateToken, (req, res) => {
     res.json({ message: 'Estás logueado!' });
 });
 
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
+// Verificar si ya hay una conexión activa
+if (mongoose.connection.readyState === 0) {
+    mongoose.connect('mongodb://localhost:27017/club_deportivo')
+        .then(() => console.log('MongoDB conectado exitosamente'))
+        .catch(err => console.error('Error conectando a MongoDB:', err));
+}
+
+// Middleware para logging de todas las peticiones
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+    next();
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Servidor backend corriendo en http://localhost:${port}`);
+    console.log('Rutas disponibles:');
+    app._router.stack.forEach(r => {
+        if (r.route && r.route.path) {
+            console.log(`${Object.keys(r.route.methods)} ${r.route.path}`);
+        } else if (r.name === 'router') {
+            console.log('Router middleware:', r.regexp);
+        }
+    });
 }); 
